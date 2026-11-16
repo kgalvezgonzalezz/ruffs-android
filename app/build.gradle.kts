@@ -1,5 +1,14 @@
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
+}
+
+// Clave de firma propia (la crea scripts/crear-clave-firma.ps1; keystore.properties
+// no se sube a git). Sin ella, "release" se firma con la clave de depuración.
+val keystoreProps = Properties().apply {
+  val f = rootProject.file("keystore.properties")
+  if (f.exists()) f.inputStream().use { load(it) }
 }
 
 android {
@@ -14,14 +23,24 @@ android {
     versionName = "1.1"
   }
 
+  signingConfigs {
+    if (keystoreProps.getProperty("storeFile") != null) {
+      create("release") {
+        storeFile = file(keystoreProps.getProperty("storeFile"))
+        storePassword = keystoreProps.getProperty("storePassword")
+        keyAlias = keystoreProps.getProperty("keyAlias")
+        keyPassword = keystoreProps.getProperty("keyPassword")
+      }
+    }
+  }
+
   buildTypes {
     release {
-      isMinifyEnabled = true
-      isShrinkResources = true
+      // Sin ofuscar: el puente JavaScript ↔ Android depende de nombres de métodos
+      // y así la versión publicada se comporta igual que la probada.
+      isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      // Firmado con la clave de depuración para poder instalarlo directamente.
-      // Antes de distribuirlo, crea tu propio keystore (Build > Generate Signed App Bundle/APK).
-      signingConfig = signingConfigs.getByName("debug")
+      signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
     }
   }
 

@@ -54,8 +54,21 @@ Requisitos: Android Studio (o el SDK de Android con `ANDROID_HOME`) y JDK 17+.
 ./gradlew assembleDebug
 ```
 
-El APK queda en `app/build/outputs/apk/debug/app-debug.apk`. Para distribuirlo,
-fírmalo con tu propia clave (Build › Generate Signed App Bundle / APK).
+El APK queda en `app/build/outputs/apk/debug/app-debug.apk`.
+
+### Versión firmada
+
+Una sola vez, crea tu clave de firma (te pide la contraseña; la clave queda en
+`%USERPROFILE%\.ruffs-firma\` y la configuración en `keystore.properties`, que
+git ignora):
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/crear-clave-firma.ps1
+```
+
+Luego `./gradlew assembleRelease` genera `app/build/outputs/apk/release/app-release.apk`
+firmado con esa clave. El APK oficial de Releases está firmado con la clave de
+RUFFS; una versión que compiles tú tendrá otra firma y no se instalará encima.
 
 ## Estructura
 
