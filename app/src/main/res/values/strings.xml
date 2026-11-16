@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RUFFS</string>
+    <string name="settings_title">Servidor RUFFS</string>
+    <string name="shortcut_settings_short">Servidor</string>
+    <string name="shortcut_settings_long">Configurar servidor RUFFS</string>
+
+    <string name="status_connecting">Conectando con RUFFS…</string>
+    <string name="status_searching">Buscando tu servidor</string>
+    <string name="status_error_title">No encuentro tu RUFFS</string>
+    <string name="status_error_help">Comprueba que RUFFS esté abierto en el PC y escuchando en la red (APP_BIND=0.0.0.0 en el .env de RUFFS), y que el teléfono esté en el mismo Wi-Fi o con Tailscale activo.</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="action_settings">Servidor</string>
+    <string name="action_close">Cerrar</string>
+    <string name="action_open_browser">Abrir en el navegador</string>
+
+    <string name="settings_intro">Direcciones donde la app busca tu RUFFS, en orden de preferencia (una por línea). Se usa la primera que responda.</string>
+    <string name="setup_title">Conecta con tu RUFFS</string>
+    <string name="setup_intro">Escribe la IP de Tailscale del PC donde tienes RUFFS (empieza por 100.) o su nombre de Tailscale (tu-pc.tailXXXX.ts.net). Si no pones puerto se usa 7100. También puedes escanear o pegar el código de emparejamiento de RUFFS.\n\nPuedes añadir más líneas, por ejemplo la IP de tu Wi-Fi de casa: la app usará la primera que responda.</string>
+    <string name="setup_needed_title">Falta configurar tu RUFFS</string>
+    <string name="setup_needed_detail">Indica la dirección de Tailscale de tu PC con RUFFS para empezar.</string>
+    <string name="settings_hint">100.x.y.z  o  tu-pc.tailXXXX.ts.net</string>
+    <string name="settings_test">Probar</string>
+    <string name="settings_scan">Escanear</string>
+    <string name="settings_paste">Pegar</string>
+    <string name="settings_reset">Restablecer</string>
+    <string name="settings_save">Guardar y conectar</string>
+    <string name="settings_help">¿Dónde veo mi IP de Tailscale? En el PC con RUFFS: icono de Tailscale → «This device», o ejecuta «tailscale ip -4». El teléfono también tiene que tener Tailscale abierto y conectado a la misma red.\n\nCódigo de emparejamiento: en RUFFS (como administrador) abre /api/companion/pair y pulsa «Generate pairing code». La app solo usa la dirección; la sesión se inicia en la pantalla de acceso de RUFFS.\n\nSi RUFFS solo escucha en 127.0.0.1, el teléfono no puede llegar: pon APP_BIND=0.0.0.0 en el .env de RUFFS y reinícialo.</string>
+
+    <string name="channel_web">Avisos de RUFFS</string>
+    <string name="channel_downloads">Descargas</string>
+</resources>

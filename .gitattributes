@@ -1,0 +1,7 @@
+* text=auto
+# El script de Gradle para Mac/Linux debe tener finales de línea LF
+gradlew text eol=lf
+*.bat text eol=crlf
+*.apk binary
+*.jar binary
+*.png binary

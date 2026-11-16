@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema Prisma de RUFFS (static/js/theme.js) -->
+    <color name="ruffs_bg">#06071A</color>
+    <color name="ruffs_panel">#0D0F26</color>
+    <color name="ruffs_border">#272B55</color>
+    <color name="ruffs_fg">#E9EBFF</color>
+    <color name="ruffs_muted">#9AA0C8</color>
+    <color name="ruffs_accent">#8B5CFF</color>
+    <color name="ruffs_accent2">#19E6FF</color>
+    <color name="ruffs_error">#FF6B81</color>
+    <color name="ruffs_ok">#4ADE80</color>
+</resources>

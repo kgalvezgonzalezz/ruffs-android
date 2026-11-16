@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Ruffs" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/ruffs_accent</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">@color/ruffs_accent2</item>
+        <item name="colorSurface">@color/ruffs_panel</item>
+        <item name="colorOnSurface">@color/ruffs_fg</item>
+        <item name="android:colorBackground">@color/ruffs_bg</item>
+        <item name="android:windowBackground">@color/ruffs_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
