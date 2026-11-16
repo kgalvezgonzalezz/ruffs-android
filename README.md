@@ -85,4 +85,24 @@ RUFFS; una versión que compiles tú tendrá otra firma y no se instalará encim
 
 ## Origen
 
-Se basa en la app de Android de Odysseus, reescrita para RUFFS.
+La versión para Android (APK) de Odysseus la creé yo,
+[kgalvezgonzalezz](https://github.com/kgalvezgonzalezz), como proyecto personal:
+hasta la fecha, que yo sepa, nadie más en el mundo había creado su propia versión
+de Odysseus para Android. RUFFS para Android parte de esa app y está reescrita
+para RUFFS.
+
+## Estrellas
+
+Si te sirve, deja una ⭐: el contador se actualiza solo.
+
+<p align="center">
+  <a href="https://github.com/kgalvezgonzalezz/ruffs-android/stargazers">
+    <img alt="Estrellas en GitHub" src="https://img.shields.io/github/stars/kgalvezgonzalezz/ruffs-android?style=for-the-badge&logo=github&label=Estrellas&color=8b5cff&cacheSeconds=300">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://star-history.com/#kgalvezgonzalezz/ruffs-android&Date">
+    <img alt="Historial de estrellas" width="600" src="https://api.star-history.com/svg?repos=kgalvezgonzalezz/ruffs-android&type=Date">
+  </a>
+</p>
