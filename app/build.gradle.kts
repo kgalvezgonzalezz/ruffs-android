@@ -19,8 +19,12 @@ android {
     applicationId = "com.ruffs.companion"
     minSdk = 26
     targetSdk = 36
-    versionCode = 2
-    versionName = "1.1"
+    versionCode = 3
+    versionName = "1.2"
+
+    // Palabra de activación sin conexión (Vosk): solo los procesadores de teléfonos
+    // reales y del emulador de 64 bits.
+    ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
   }
 
   signingConfigs {
@@ -70,4 +74,9 @@ dependencies {
   implementation(libs.material)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.play.services.code.scanner)
+  implementation(libs.androidx.biometric)
+  implementation(libs.androidx.work.runtime.ktx)
+  // Vosk + JNA como AAR (las librerías nativas van dentro)
+  implementation(libs.vosk.android) { artifact { type = "aar" } }
+  implementation(libs.jna) { artifact { type = "aar" } }
 }

@@ -624,6 +624,79 @@
     return ev.defaultPrevented;
   };
 
+  // ── Compartir → RUFFS y «abrir escuchando» ───────────────────────────────────
+  // La app llama a estas funciones cuando la página ya cargó; aquí se espera a
+  // que la interfaz de RUFFS esté lista (tras iniciar sesión, si hacía falta).
+  function whenChatReady(fn, tries) {
+    tries = tries || 0;
+    var ta = document.getElementById('message');
+    var loader = document.getElementById('app-loader');
+    if (ta && document.getElementById('file-input') && !(loader && loader.offsetParent !== null)) return fn(ta);
+    if (tries < 480) setTimeout(function () { whenChatReady(fn, tries + 1); }, 250);   // hasta 2 min
+  }
+
+  R.receiveShare = function (p) {
+    whenChatReady(function () {
+      var newChat = document.getElementById('rail-new-session');
+      if (newChat) { try { newChat.click(); } catch (e) {} }
+      setTimeout(function () {
+        var ta = document.getElementById('message');
+        if (!ta) return;
+        if (p.text) {
+          ta.value = (ta.value ? ta.value + '\n' : '') + p.text;
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        var files = p.files || [];
+        Promise.all(files.map(function (f) {
+          return fetch(f.url, { credentials: 'same-origin' })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+            .then(function (b) { return new File([b], f.name, { type: f.mime || b.type }); })
+            .catch(function () { return null; });
+        })).then(function (list) {
+          list = list.filter(Boolean);
+          if (list.length) {
+            var input = document.getElementById('file-input');
+            try {
+              var dt = new DataTransfer();
+              list.forEach(function (f) { dt.items.add(f); });
+              input.files = dt.files;
+              input.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (e) {}
+          }
+          try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+        });
+      }, newChat ? 450 : 0);
+    });
+    return true;
+  };
+
+  R.startListening = function () {
+    whenChatReady(function () {
+      var v = window.ruffsVoice;
+      if (v && v.getIsRecording && v.getIsRecording()) return;
+      var mic = document.getElementById('chat-mic-btn');
+      if (mic) mic.click();
+    });
+    return true;
+  };
+
+  // ¿La página está haciendo algo que no se debe cortar al pasar a segundo
+  // plano? (respondiendo, grabando o hablando). La app pausa la página si no.
+  R.isBusy = function () {
+    try {
+      if (document.querySelector('[data-mode="streaming"],.agent-thread.streaming')) return true;
+      var v = window.ruffsVoice;
+      if (v && v.getIsRecording && v.getIsRecording()) return true;
+      if (window.aiTTSManager && window.aiTTSManager.isPlaying) return true;
+      if (window.speechSynthesis && window.speechSynthesis.speaking) return true;
+    } catch (e) {}
+    return false;
+  };
+
+  R.openOptions = function () {
+    try { window.RuffsNative.openOptions(); return true; } catch (e) { return false; }
+  };
+
   R.isApp = true;
   try { document.documentElement.classList.add('ruffs-android-app'); } catch (e) {}
 })();

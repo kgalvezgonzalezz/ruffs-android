@@ -292,6 +292,13 @@ class NativeBridge(private val host: MainActivity, private val web: WebView) {
         host.runOnUiThread { host.openSettings() }
     }
 
+    /** Opciones de la app (avisos, voz con la app cerrada, bloqueo, actualizaciones). */
+    @JavascriptInterface
+    fun openOptions() {
+        if (!trusted()) return
+        host.runOnUiThread { host.openOptions() }
+    }
+
     @JavascriptInterface
     fun appInfo(): String = JSONObject()
         .put("app", "RUFFS Android")

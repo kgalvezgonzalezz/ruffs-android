@@ -4,6 +4,11 @@
     <string name="settings_title">Servidor RUFFS</string>
     <string name="shortcut_settings_short">Servidor</string>
     <string name="shortcut_settings_long">Configurar servidor RUFFS</string>
+    <string name="shortcut_talk_short">Hablar</string>
+    <string name="shortcut_talk_long">Hablar con RUFFS</string>
+    <string name="shortcut_options_short">Opciones</string>
+    <string name="shortcut_options_long">Opciones de la app</string>
+    <string name="share_label">RUFFS</string>
 
     <string name="status_connecting">Conectando con RUFFS…</string>
     <string name="status_searching">Buscando tu servidor</string>

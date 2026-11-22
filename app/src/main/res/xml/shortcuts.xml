@@ -3,6 +3,28 @@
     <shortcut
         android:enabled="true"
         android:icon="@drawable/ic_shortcut_server"
+        android:shortcutId="talk"
+        android:shortcutLongLabel="@string/shortcut_talk_long"
+        android:shortcutShortLabel="@string/shortcut_talk_short">
+        <intent
+            android:action="com.ruffs.companion.LISTEN"
+            android:targetClass="com.ruffs.companion.MainActivity"
+            android:targetPackage="com.ruffs.companion" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_server"
+        android:shortcutId="options"
+        android:shortcutLongLabel="@string/shortcut_options_long"
+        android:shortcutShortLabel="@string/shortcut_options_short">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="com.ruffs.companion.OptionsActivity"
+            android:targetPackage="com.ruffs.companion" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_server"
         android:shortcutId="server"
         android:shortcutLongLabel="@string/shortcut_settings_long"
         android:shortcutShortLabel="@string/shortcut_settings_short">

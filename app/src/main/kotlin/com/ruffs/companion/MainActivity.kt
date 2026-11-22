@@ -72,7 +72,22 @@ import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        /** Abrir RUFFS escuchando (palabra de activación en segundo plano, asistente). */
+        const val ACTION_LISTEN = "com.ruffs.companion.LISTEN"
+        const val ACTION_UPDATE = "com.ruffs.companion.UPDATE"
+        const val ACTION_OPTIONS = "com.ruffs.companion.OPTIONS"
+    }
+
     private enum class State { CONNECTING, WEB, ERROR }
+
+    // Lo que llegó de fuera y se entrega a la página cuando está lista
+    private var pendingShare: JSONObject? = null
+    private var pendingListen = false
+    private var pendingApk: File? = null
+    private var lockCover: View? = null
+    private var unlocking = false
+    private var updateChecked = false
 
     // Vistas
     private lateinit var root: FrameLayout
@@ -329,6 +344,8 @@ class MainActivity : AppCompatActivity() {
         (getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager).registerDefaultNetworkCallback(netCallback)
 
         connect()
+        handleIntent(intent)
+        NotifySync.schedule(this)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -336,11 +353,206 @@ class MainActivity : AppCompatActivity() {
         intent.getStringExtra(WebNotifier.EXTRA_NOTIFICATION_ID)?.let { id ->
             bridges[web]?.emit("notificationclick", JSONObject.quote(id))
         }
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        main.removeCallbacks(pauseWebCheck)
+        if (webPaused) {
+            webPaused = false
+            web.onResume()
+            web.resumeTimers()
+            if (netCheckPending) { netCheckPending = false; scheduleNetCheck() }
+        }
+        if (AppLock.needsUnlock(this)) lockNow()
+    }
+
+    // ── Batería: la página no sigue trabajando en segundo plano ───────────────
+    // RUFFS consulta el servidor cada minuto (recordatorios, tareas, correo…) y
+    // Android no para eso en una app que solo está oculta. Al salir, tras un
+    // margen, se pausa la página salvo que esté respondiendo, grabando o
+    // hablando; los avisos los sigue trayendo la sincronización nativa.
+    private var webPaused = false
+    private var netCheckPending = false
+    private var pauseChecks = 0
+    private val pauseWebCheck: Runnable = Runnable {
+        if (NotifySync.appInForeground || webPaused || state != State.WEB) return@Runnable
+        web.evaluateJavascript("(window.__ruffs&&window.__ruffs.isBusy)?window.__ruffs.isBusy():false") { busy ->
+            if (NotifySync.appInForeground || webPaused) return@evaluateJavascript
+            if (busy == "true" && pauseChecks++ < 90) {   // hasta ~30 min respondiendo
+                main.postDelayed(pauseWebCheck, 20_000)
+            } else {
+                webPaused = true
+                web.onPause()
+                web.pauseTimers()
+            }
+        }
+    }
+
+    private fun schedulePauseWeb() {
+        pauseChecks = 0
+        main.removeCallbacks(pauseWebCheck)
+        main.postDelayed(pauseWebCheck, 30_000)
     }
 
     override fun onResume() {
         super.onResume()
+        NotifySync.appInForeground = true
+        WakeWordService.ensure(this)          // si la opción está activada
+        WakeWordService.appForeground(this)   // la página usa el micrófono mientras está abierta
         if (state == State.ERROR) connect(currentPath())
+        pendingApk?.let { apk -> if (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls()) { pendingApk = null; Updater.install(this, apk) } }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        NotifySync.appInForeground = false
+        WakeWordService.appBackground(this)
+        NotifySync.syncSoon(this)
+        if (!isChangingConfigurations) schedulePauseWeb()
+    }
+
+    // ── Lo que llega de fuera: compartir, asistente, palabra de activación ────
+    private fun handleIntent(i: Intent?) {
+        when {
+            i == null -> Unit
+            ShareInbox.isShare(i) -> {
+                val copy = Intent(i)
+                i.action = Intent.ACTION_MAIN   // no repetir al recrear la actividad
+                toast("Preparando lo que compartiste…")
+                io {
+                    val payload = runCatching { ShareInbox.take(this, copy) }.getOrNull()
+                    runOnUiThread {
+                        if (payload == null) toast("No se pudo leer lo compartido")
+                        else {
+                            val skipped = payload.optInt("skipped")
+                            if (skipped > 0) toast("No se pudo adjuntar $skipped archivo(s) (máx. 10, de hasta 200 MB)", long = true)
+                            pendingShare = payload; deliverPending()
+                        }
+                    }
+                }
+            }
+            i.action == ACTION_LISTEN || i.action == Intent.ACTION_ASSIST || i.action == Intent.ACTION_VOICE_COMMAND ||
+                i.action == "android.intent.action.SEARCH_LONG_PRESS" -> {
+                i.action = Intent.ACTION_MAIN
+                pendingListen = true
+                openOverLockScreen()
+                deliverPending()
+            }
+            i.action == ACTION_OPTIONS -> { i.action = Intent.ACTION_MAIN; startActivity(Intent(this, OptionsActivity::class.java)) }
+            i.action == ACTION_UPDATE -> {
+                // La dirección de descarga nunca viene de fuera: se vuelve a pedir a GitHub.
+                i.action = Intent.ACTION_MAIN
+                lifecycleScope.launch {
+                    val r = runCatching { Updater.latest() }.getOrNull()
+                    if (r != null && Updater.isNewer(r.version, BuildConfig.VERSION_NAME)) startUpdate(r)
+                }
+            }
+        }
+    }
+
+    /** Con el teléfono bloqueado: encender la pantalla y pedir desbloquearlo
+     *  antes de enseñar nada (nadie ve tus chats desde la pantalla de bloqueo). */
+    private fun openOverLockScreen() {
+        val km = getSystemService(android.app.KeyguardManager::class.java)
+        if (!km.isKeyguardLocked) return
+        if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
+        showCover("Desbloquea el teléfono para hablar con RUFFS")
+        if (Build.VERSION.SDK_INT >= 26) {
+            km.requestDismissKeyguard(this, object : android.app.KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() {
+                    if (Build.VERSION.SDK_INT >= 27) setShowWhenLocked(false)
+                    if (!AppLock.needsUnlock(this@MainActivity)) hideCover()
+                    deliverPending()
+                }
+                override fun onDismissCancelled() { pendingListen = false; moveTaskToBack(true) }
+                override fun onDismissError() { pendingListen = false }
+            })
+        }
+    }
+
+    /** Entrega a la página lo pendiente, cuando ya cargó y no hay bloqueo. */
+    private fun deliverPending() {
+        if (state != State.WEB || lockCover != null) return
+        pendingShare?.let { p ->
+            pendingShare = null
+            web.evaluateJavascript("window.__ruffs&&window.__ruffs.receiveShare(${p})", null)
+        }
+        if (pendingListen) {
+            pendingListen = false
+            web.evaluateJavascript("window.__ruffs&&window.__ruffs.startListening()", null)
+        }
+    }
+
+    // ── Bloqueo con huella / rostro ───────────────────────────────────────────
+    private fun lockNow() {
+        showCover("RUFFS está bloqueado")
+        if (unlocking) return
+        unlocking = true
+        AppLock.prompt(this) { ok ->
+            unlocking = false
+            if (ok) { hideCover(); deliverPending() }
+        }
+    }
+
+    private fun showCover(message: String) {
+        lockCover?.let { (it.findViewById<TextView>(android.R.id.text1))?.text = message; return }
+        val cover = layoutInflater.inflate(R.layout.lock_cover, root, false)
+        cover.findViewById<TextView>(android.R.id.text1).text = message
+        cover.findViewById<Button>(android.R.id.button1).setOnClickListener {
+            val km = getSystemService(android.app.KeyguardManager::class.java)
+            if (km.isKeyguardLocked) openOverLockScreen() else if (AppLock.needsUnlock(this)) lockNow() else { hideCover(); deliverPending() }
+        }
+        cover.isClickable = true
+        root.addView(cover, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        lockCover = cover
+    }
+
+    private fun hideCover() {
+        lockCover?.let { root.removeView(it) }
+        lockCover = null
+    }
+
+    // ── Actualizar la app ─────────────────────────────────────────────────────
+    fun startUpdate(r: Updater.Release) {
+        val msg = TextView(this).apply { setPadding(64, 40, 64, 16); text = "Descargando… 0 %" }
+        val dlg = androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Actualizando RUFFS").setView(msg).setCancelable(false).show()
+        lifecycleScope.launch {
+            val res = runCatching { Updater.download(this@MainActivity, r) { p -> runOnUiThread { msg.text = "Descargando… $p %" } } }
+            dlg.dismiss()
+            res.onSuccess { apk ->
+                if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+                    pendingApk = apk
+                    toast("Permite «Instalar apps desconocidas» para RUFFS y vuelve", long = true)
+                }
+                Updater.install(this@MainActivity, apk)
+            }.onFailure {
+                Log.w("RUFFS-update", "no se pudo actualizar: ${it.message}")
+                toast("No se pudo actualizar: ${it.message}", long = true)
+            }
+        }
+    }
+
+    private fun afterFirstLoad() {
+        deliverPending()
+        if (updateChecked) return
+        updateChecked = true
+        lifecycleScope.launch { Updater.checkInBackground(this@MainActivity) }
+        // Novedades de esta versión, una sola vez
+        if (AppOptions.seenWhatsNew(this) != BuildConfig.VERSION_NAME) {
+            AppOptions.setSeenWhatsNew(this, BuildConfig.VERSION_NAME)
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Novedades de RUFFS ${BuildConfig.VERSION_NAME}")
+                .setMessage("• Comparte cualquier cosa a RUFFS desde otras apps (Compartir → RUFFS).\n" +
+                    "• Avisos y recordatorios con la app cerrada.\n" +
+                    "• Opcional: decir «Ruffs» con la app cerrada, usar RUFFS como asistente del teléfono y bloquearla con huella o rostro.\n" +
+                    "• La app se actualiza sola desde aquí.\n\nTodo se configura en Opciones.")
+                .setPositiveButton("Ver opciones") { _, _ -> startActivity(Intent(this, OptionsActivity::class.java)) }
+                .setNegativeButton("Más tarde", null)
+                .show()
+        }
     }
 
     override fun onDestroy() {
@@ -466,6 +678,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onNetworkChanged() {
+        // Con la página pausada no probar servidores: se hace al volver.
+        if (webPaused) { netCheckPending = true; return }
         when (state) {
             State.ERROR -> connect(currentPath())
             State.WEB -> {
@@ -568,6 +782,14 @@ class MainActivity : AppCompatActivity() {
                 state = State.WEB
                 hideStatus()
             }
+            if (state == State.WEB) afterFirstLoad()
+        }
+
+        /** Archivos compartidos desde otras apps: los sirve la app, no la red. */
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? {
+            val u = request.url
+            if (u.path?.startsWith(ShareInbox.PATH) == true && isTrusted(u.toString())) return ShareInbox.serve(u.path!!)
+            return null
         }
 
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
@@ -915,6 +1137,10 @@ class MainActivity : AppCompatActivity() {
 
     fun openSettings() {
         settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
+    }
+
+    fun openOptions() {
+        startActivity(Intent(this, OptionsActivity::class.java))
     }
 
     fun vibrate(pattern: LongArray) {

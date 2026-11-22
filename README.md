@@ -46,6 +46,28 @@ Vibra al pasar el punto de recarga y el círculo usa los colores de tu tema.
   direcciones y, si ninguna responde, deja la página como estaba.
 - En la pantalla de "No encuentro tu RUFFS", tirar hacia abajo reintenta.
 
+## Opciones de la app (1.2)
+
+Mantén pulsado el icono → **Opciones**. Todo es opcional:
+
+- **Compartir → RUFFS** desde cualquier app (texto, enlaces, fotos, PDF… hasta 10
+  archivos de 200 MB): abre un chat nuevo con todo adjunto, listo para escribir qué quieres.
+- **Avisos con la app cerrada** (activado): recordatorios a su hora exacta (alarmas
+  locales) y avisos de tareas terminadas (se consultan cada ~15 min en
+  `/api/companion/notifications`, que no le quita los avisos a la página del PC).
+- **Escuchar «Ruffs» con la app cerrada** (desactivado): reconocimiento en el teléfono,
+  sin internet (Vosk, modelo de ~40 MB que se descarga al activarlo). Solo con la
+  pantalla encendida salvo que se active también «con la pantalla apagada»; se pausa en
+  modo ahorro de batería y con menos del 15 %. Con «Mostrar sobre otras apps» se abre sola.
+- **Asistente del teléfono**: RUFFS puede ser la app de asistencia (mantener pulsado inicio/encendido).
+- **Bloqueo con huella, rostro o PIN** (desactivado): al abrir y tras 0/1/5/15 min fuera.
+  Al abrirse por voz con el teléfono bloqueado, primero hay que desbloquearlo.
+- **Actualizaciones**: avisa de versiones nuevas publicadas en GitHub, las descarga y
+  comprueba que estén firmadas con la misma clave antes de instalarlas.
+
+Batería: en segundo plano la página de RUFFS se pausa a los 30 s (salvo si está
+respondiendo, grabando o hablando); los avisos los trae la sincronización nativa.
+
 ## Compilar
 
 Requisitos: Android Studio (o el SDK de Android con `ANDROID_HOME`) y JDK 17+.

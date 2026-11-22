@@ -52,6 +52,7 @@ class WebNotifier(private val context: Context) {
 
     fun showWeb(webId: String, title: String, body: String, tag: String) {
         if (!permissionGranted()) return
+        Ledger.markWebTag(context, tag)   // la sincronización en segundo plano no lo repetirá
         val id = notificationId(webId, tag)
         val open = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
